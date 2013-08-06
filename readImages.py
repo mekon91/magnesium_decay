@@ -1,15 +1,15 @@
 
-import Image,os,sys, scipy
+import Image,os,sys, scipy, warnings, time, cv
 import numpy as np
 from os import listdir
 from os.path import isfile, join
 import scipy.ndimage as im
-import warnings
 
 
 
 
-file_extension = '.png'
+
+file_extension = '.tif'
 path = "/afs/desy.de/user/d/dariep/Desktop/magnesium_decay/Images"
 
 #returns all the files at path that end with the extension file_extension
@@ -27,47 +27,47 @@ def get_image_files(path,file_extension):
 		print '\n'
 	else:
 		print "No files in folder " + path
+		return None
+	image_files.sort()	
 	return image_files	
-	
-#returns an array with the grayscale of the image file img. METHOD OBSOLETE I THINK
-def img_to_array(img):
-	size = img.size
-	pixels = img.load()
-	
-	#declare array a with same size as the image img
-	a = np.zeros((size[0],size[1]), dtype = int) 
-	
-	for x in xrange(size[0]):
-		for y in xrange(size[1]):
-			#Note: this array contains the red values [0 255]
-			#It assumes image is already grayscale!
-			#TODO converter from RGBA -> grayscale
-			a[y][x] = pixels[x,y][0]
-	return a	
 
+
+#for now this does not work well, i hate iplimage	
+def make_video(filename,images):
+	frame_size = (images[0].width,images[0].height)  #cv.CV_FOURCC('i','Y', 'U', 'V')
+	writer = cv.CreateVideoWriter(filename, 0, 25, frame_size, is_color = cv.CV_LOAD_IMAGE_GRAYSCALE)
+	for img in images:
+		cv.WriteFrame(writer,img)
+	
+
+#using the get_image_files, it then reads all images at path with the extension file_extension, and stacks them on a 3D array m. m[i] is the ith image
 def read_from_file_to_array(path,file_extension):
 	image_files = get_image_files(path,file_extension)
-	image_files.sort()
 	try:
 		i = 0
 		#get dimension of the image. It assumes all images are the same resolution
 		first_img = Image.open(path + "/" + image_files[0])
-		size_of_images = first_img.size
-		
-		m = np.zeros((len(image_files),size_of_images[0],size_of_images[1]), dtype = int)
-		#m = m.astype(int)
+			
+		m = np.zeros((len(image_files),first_img.size[0],first_img.size[1]), dtype = int)
+			
 		for file in image_files:
 			print "Opening image at " + path + "/" + file
-			img = Image.open(path + "/" + file)
-			a = img_to_array(img)
+			
+			img = Image.open(path + "/" + file)			
+			#img = cv.LoadImage(path + "/" + file, cv.CV_LOAD_IMAGE_GRAYSCALE)				
+			#convert the image to a 2D array.
+			a = np.asarray(img)		
 			m[i] = a
-			i += 1
-		#print m	
+			#if (i == 60):	
+			#	lol_array = m[:,:,350]
+			#	lol_image = Image.fromarray(np.uint8(lol_array))
+			#	lol_image.show()
+			#	img.show()
+			i += 1	
 	except IOError:
-		print "Problems opening files from" + path
-
-import warnings
- 
+		print "Problems opening files from" + path	
+	return m
+	
 def anisodiff(img,niter=1,kappa=50,gamma=0.1,step=(1.,1.),option=1):
 		"""
 		Anisotropic diffusion.
@@ -262,15 +262,17 @@ def anisodiff3(stack,niter=1,kappa=50,gamma=0.1,step=(1.,1.,1.),option=1,ploton=
 		return stackout
 
 		
-#read_from_file_to_array(path,file_extension)
+read_from_file_to_array(path,file_extension)
 
-img = Image.open('lena_noisy.png')
-img_array = np.asarray(img)
+#img_array = np.asarray(img)
 
-filtered_array = im.median_filter(img_array, 10 , None , None, 'wrap', 0.0, 0)
-filtered_img = Image.fromarray(np.uint8(filtered_array)) 
+#filtered_array = im.median_filter(img_array, 10 , None , None, 'wrap', 0.0, 0)
+#filtered_img = Image.fromarray(np.uint8(filtered_array)) 
 
-filtered_img.save("median_img.png")
+#filtered_img.save("median_img.png")
 
-anisodiff(img_array,37,50,0.1,(1.,1.),1)
+#anisodiff(img_array,37,50,0.1,(1.,1.),1)
+
+
+
 
