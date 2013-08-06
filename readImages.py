@@ -34,7 +34,8 @@ def get_image_files(path,file_extension):
 
 #for now this does not work well, i hate iplimage	
 def make_video(filename,images):
-	frame_size = (images[0].width,images[0].height)  #cv.CV_FOURCC('i','Y', 'U', 'V')
+	frame_size = (images[0].width,images[0].height)  
+	#cv.CV_FOURCC('i','Y', 'U', 'V')
 	writer = cv.CreateVideoWriter(filename, 0, 25, frame_size, is_color = cv.CV_LOAD_IMAGE_GRAYSCALE)
 	for img in images:
 		cv.WriteFrame(writer,img)
@@ -149,9 +150,7 @@ def anisodiff(img,niter=1,kappa=50,gamma=0.1,step=(1.,1.),option=1):
 				EW[:,1:] -= E[:,:-1]
  
 				# update the image
-				imgout += gamma*(NS+EW)
-				ani_img = Image.fromarray(np.uint8(imgout)) 
-				ani_img.save("ani_img2.png")		
+				imgout += gamma*(NS+EW)		
 		return imgout
  
 def anisodiff3(stack,niter=1,kappa=50,gamma=0.1,step=(1.,1.,1.),option=1,ploton=False):
@@ -261,17 +260,29 @@ def anisodiff3(stack,niter=1,kappa=50,gamma=0.1,step=(1.,1.,1.),option=1,ploton=
 					
 		return stackout
 
-		
-read_from_file_to_array(path,file_extension)
 
-#img_array = np.asarray(img)
 
-#filtered_array = im.median_filter(img_array, 10 , None , None, 'wrap', 0.0, 0)
-#filtered_img = Image.fromarray(np.uint8(filtered_array)) 
 
-#filtered_img.save("median_img.png")
+#read_from_file_to_array(path,file_extension)
 
-#anisodiff(img_array,37,50,0.1,(1.,1.),1)
+
+img = Image.open("mag_test.tif")
+#for some reason the x axis is flipped when reading images, thus flipud was used to flip back to original			
+img_array = np.flipud(np.asarray(img))
+
+#median filter used, 
+median_array = im.median_filter(img_array, 5 , None , None, 'wrap', 0.0, 0)
+median_img = Image.fromarray(np.uint8(median_array))
+median_img.save("median_img.tif")
+
+
+ani_array = anisodiff(img_array,10,50,0.1,(1.,1.),1)
+ani_img = Image.fromarray(np.uint8(ani_array))
+ani_img.save("ani_img.tif")
+
+median_img.show()
+ani_img.show()
+
 
 
 
