@@ -59,6 +59,10 @@ class processImages:
 		if not os.path.exists(path_gifs):
 			os.makedirs(path_gifs)
 			
+		path_recolored_basic = path + "/R_Images"	
+		if not os.path.exists(path_recolored_basic):
+			os.makedirs(path_recolored_basic)
+			
 		#m is the 3D array containing all the images at path
 		m = read_from_file_to_array(path_filtered)
 		self.m = m
@@ -72,9 +76,11 @@ class processImages:
 		
 		self.m_regions = region_array(m,threshholds)
 		
+		save_images_from_3D_region_array (self.m_regions, path_recolored_basic)
+		
 				
 		#need to make a BASIC recolor function, one color per region, no interpolation or anything cool
-		#recolor(path_filtered, path_recolored)
+		#recolor2(path_filtered, path_recolored)
 						
 		#save_PIL_images_from_3Darray(m, 1, path_slice_j)
 		#save_PIL_images_from_3Darray(m, 2, path_slice_k)
@@ -440,8 +446,10 @@ def apply_filters(m, path_filtered):
 	
 	return m	
 
+
+
 #colors the images and saves the recolored versions at the path_recolored.
-def recolor(path_images, path_recolored):
+def recolor2(path_images, path_recolored):
 	i = 0
 	print 'Recoloring images at path: ' + path_recolored + ' ...\n' 
 	images = get_PIL_images(path_images)
@@ -461,12 +469,7 @@ def recolor(path_images, path_recolored):
 				#TODO: READ FROM FILES!
 				#some colors used 
 				pink2 = (136,0,136) 
-				blue4 = (0, 0, 139)
-				lawngreen = (124, 252, 0)
-				black = (0,0,0)
-				red2 = (238,0,0)
-				mint = (189, 252, 201)
-
+			    
 				#try linear interpolation
 				darkblue = (0, 0, 128)
 				lightblue = (30, 144, 255)
@@ -622,6 +625,20 @@ def save_PIL_images_from_3Darray (m, dimension, vertical_path):
 				print "Writing image " + "/slice_k_" + str(i) + ".tif" + " at " + vertical_path + "/slice_k_" + str(i) + ".tif"			
 	else:
 		print "Dimension passed to get_PIL_images_from_3Darray must be among [0,1,2]"
+
+# might do this more complex, like save_PIL_iomages_from_3Darray
+def save_images_from_3D_region_array (m_regions, path_basic_recolor):
+	#Colors will probably be one of the parameters of this function. For now just green and blue
+	color_dict = { 1 : (0,255,0), 2 : (0,0,125) } 
+	#loop over all horisontal slices of m (images)
+	for i in xrange(m_regions.shape[0]):
+		img = Image.new("RGB", (775,775), "black")	
+		for x in xrange(775):
+			for y in xrange(775):
+				if (m_regions[i,x,y] != 0):
+					img.putpixel( (x,y), color_dict[1])   
+		img.save(path_basic_recolor + "/img" + str(i) + ".tif")
+		print "Saved image " + 	"/recolored_img" + str(i) + ".tif" + " at " + path_basic_recolor + "/img" + str(i) + ".tif"
 
 m = None			
 p = processImages(path)
