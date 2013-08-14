@@ -1,5 +1,5 @@
 
-import os,sys, scipy, warnings, time, helpFcts
+import os,sys, scipy, warnings, time, helpFcts, fileReader 
 import numpy as np
 from os import listdir
 from os.path import isfile, join
@@ -7,9 +7,10 @@ import scipy.ndimage as im
 from PIL import Image, ImageSequence
 from images2gif import writeGif
 from regionGrowing import *
+import matplotlib.pyplot as plt
 
-#file_extension = '.tif'
-path = "/afs/desy.de/user/d/dariep/Desktop/magnesium_decay/Images"
+file_extension = ".tif"
+path = "/afs/desy.de/user/d/dariep/Desktop/magnesium_decay/Data1"
 
 class processImages:
 	#path of the images
@@ -25,23 +26,28 @@ class processImages:
 		
 		self.path  = path
 		
+			
+		path_original_images = path + "/tiff"
+		path_original_sli = path + "/reco"
+		
 		#creating new paths: 1 for filtered images, 1 for recolored images, 1 for gif videos, 
-		#plus 4 for slices along ith and jth dimensions (2 filtered, 2 recolored)
-		path_filtered = path + "/Filtered_Images"
+		#plus 4 for slices along ith and jth dimensions (2 filtered, 2 recolored)	
+		
+		path_filtered = path + "/Filtered"
 		if not os.path.exists(path_filtered): 
 			os.makedirs(path_filtered)
 			
-		path_recolored = path + "/Recolored_Images"
+		path_recolored = path + "/Nicely_Recolored"
 		if not os.path.exists(path_recolored):
 			os.makedirs(path_recolored)
 		
 		#slices along the j'th (1) dimension
-		path_slice_j = path + "/Slice_j_Images"
+		path_slice_j = path + "/Slice_j"
 		if not os.path.exists(path_slice_j):
 			os.makedirs(path_slice_j)
 			
 		#slices along the k'th (2) dimension
-		path_slice_k = path + "/Slice_k_Images"
+		path_slice_k = path + "/Slice_k"
 		if not os.path.exists(path_slice_k):
 			os.makedirs(path_slice_k)
 				
@@ -58,29 +64,32 @@ class processImages:
 		path_gifs = path + "/GIFs"	
 		if not os.path.exists(path_gifs):
 			os.makedirs(path_gifs)
-			
-		path_recolored_basic = path + "/R_Images"	
+		
+		
+		path_recolored_basic = path + "/Recolored"	
 		if not os.path.exists(path_recolored_basic):
 			os.makedirs(path_recolored_basic)
 			
 		#m is the 3D array containing all the images at path
-		m = read_from_file_to_array(path_filtered)
+		m = fileReader.image_from_folder_to_array(path_original_images, file_extension)
 		self.m = m
 		
+		f = frequencies(m)
+	
 		print "Number of images: " + str(m.shape[0])		
 			
 		#m = apply_filters(m, path_filtered)
-		
 		#region grow to find the different regions.Should return list of thresholds.TODO
-		threshholds = [50,185]
+		#threshholds = [50,185]
+			
+		#self.m_regions = region_array(m,threshholds)
 		
-		self.m_regions = region_array(m,threshholds)
-		
-		save_images_from_3D_region_array (self.m_regions, path_recolored_basic)
+		#save_images_from_3D_region_array (self.m_regions, path_recolored_basic)
 		
 				
 		#need to make a BASIC recolor function, one color per region, no interpolation or anything cool
 		#recolor2(path_filtered, path_recolored)
+		#recolor(path_filtered, path_recolored_basic)
 						
 		#save_PIL_images_from_3Darray(m, 1, path_slice_j)
 		#save_PIL_images_from_3Darray(m, 2, path_slice_k)
@@ -99,45 +108,7 @@ def make_video(filename, path_images, path_save):
 	images = get_PIL_images(path_images)
 	writeGif(path_save + "/" +filename, images, duration = 0.015)
 	print	
-
-#returns all the files at path that end with the extension file_extension
-def get_image_files(path,file_extension):
-	try:
-		image_files = [ f for f in listdir(path) if isfile(join(path,f)) and f.endswith(file_extension)]
-	except IOError:
-		"No such file or directory: "  + path 	
-	#check if there are files in folder and print their names out
-	if (len(image_files) >= 1):
-		
-		print "Images in folder: "
-		for i in image_files:
-			print i,
-		print '\n'
-		helpFcts.sort_nicely(image_files)	
-		return image_files
-	else:
-		print "No files in folder " + path
-		return None
 	
-#returns all the files at path
-def get_image_files(path):
-	try:
-		image_files = [ f for f in listdir(path) if isfile(join(path,f))]
-	except IOError:
-		"No such file or directory: "  + path 	
-	#check if there are files in folder and print their names out
-	if (len(image_files) >= 1):
-		
-		print "Images in folder: "
-		for i in image_files:
-			print i,
-		print '\n'
-		helpFcts.sort_nicely(image_files)	
-		return image_files
-	else:
-		print "No files in folder " + path
-		return None
-		
 def get_PIL_images(path):
 	image_names = get_image_files(path)
 	images = []
@@ -146,30 +117,52 @@ def get_PIL_images(path):
 		images.append(img)
 	return images
 	
-#using the get_image_files, it then reads all images at path with the extension 'file_extension', and stacks them on a 3D array m. m[i] is the ith image
-def read_from_file_to_array(path):
-	image_files = get_image_files(path)
-	try:
-		i = 0
-		#get dimension of the image. It assumes all images are the same resolution
-		first_img = Image.open(path + "/" + image_files[0])
-			
-		m = np.zeros((len(image_files),first_img.size[0],first_img.size[1]), dtype = int)
-			
-		for file in image_files:
-			print "Opening image at " + path + "/" + file
-			
-			img = Image.open(path + "/" + file)						
-			#convert the image to a 2D array. flip the x axis, because for some reason the image img is mirrored
-			a = np.flipud(np.asarray(img))		
-			m[i] = a
-			i += 1
-		print
-		return m		
-	except IOError:
-		print "Problems opening files from" + path
-		return None	
-
+#returns an array of size 256, each entry shows the frequency of the corresponding grayscale valye
+#FOR NOW ITS COUNTS NOT FREQUENCY. TODO
+def frequencies(m):
+	f = np.zeros(256,dtype = int)
+	for i in xrange(m.shape[0]):
+		print str(i)
+		for j in xrange(m.shape[1]):
+			for k in xrange(m.shape[2]):
+				f[m[i,j,k]] += 1
+	file_freq = open('frequencies.txt','w')
+	for i in f:
+		
+		file_freq.write(str(i) + '\n')
+	file_freq.close()	
+	return f 
+	
+def frequencies_float(m):
+	f = np.zeros(512,dtype = int)
+	#get max and min
+	minimum = m[0,0,0]
+	maximum = m[0,0,0]
+	print m[0,0,0]
+	 
+	"""for i in xrange(m.shape[0]):
+		print "Determining max and min " + str(i) + "% "
+		for j in xrange(m.shape[1]):
+			for k in xrange(m.shape[2]):
+				if (m[i,j,k] < minimum):
+					minimum = m[i,j,k]				
+				if (m[i,j,k] > maximum):
+					maximum = m[i,j,k]
+	print "minimum is " + str(minimum) + "\n maximum is " + str(maximum)
+	"""
+	maximum = 0.0153947146609 
+	minimum = -0.00610217032954
+	
+	bin_size = (maximum - minimum) / 512.
+	print "Bin size is " + str(bin_size)
+	for i in xrange(m.shape[0]):
+		print "Float frequencies " + str(i) + "% "
+		for j in xrange(m.shape[1]):
+			for k in xrange(m.shape[2]):
+				index = abs(int(m[i,j,k] / bin_size))
+				f[index] += 1 
+	return f
+					
 #reads image from 'path', writes an image to 'filename'. 
 def sobel_edge_detection(path,filename):
 	img2 = scipy.misc.imread(path)
@@ -428,7 +421,7 @@ def apply_filters(m, path_filtered):
 
 	print "Applying anisotropic diffusion on 3D array of size: " + str(m.shape)  
 	m = anisodiff3(m,niter=15,kappa=8,gamma=0.1,step=(1.,1.,1.),option=1)
-	print "Done	in: " + str(time.clock() - start) + " seconds"
+	print "Done in: " + str(time.clock() - start) + " seconds"
 	print
 	
 	start = time.clock()
@@ -445,8 +438,6 @@ def apply_filters(m, path_filtered):
 		print "Saving image " + "/filtered_img" + str(i) + ".tif" + " at " + path_filtered + "/filtered_img" + str(i) + ".tif"
 	
 	return m	
-
-
 
 #colors the images and saves the recolored versions at the path_recolored.
 def recolor2(path_images, path_recolored):
@@ -640,10 +631,53 @@ def save_images_from_3D_region_array (m_regions, path_basic_recolor):
 		img.save(path_basic_recolor + "/img" + str(i) + ".tif")
 		print "Saved image " + 	"/recolored_img" + str(i) + ".tif" + " at " + path_basic_recolor + "/img" + str(i) + ".tif"
 
-m = None			
-p = processImages(path)
-print p.m_regions
+def histogram(filename):
+	try:
+		file_freq = open(filename,'r')
+		nr_lines = 0
+		freq_list = []
+		for line in file_freq:			
+			nr_lines += 1			
+			freq_list.append(int(line))
+		f = np.array( freq_list ) 
+		i = 0
+					
+		alphab = range(0,nr_lines)	
+		print str(len(alphab)) + " " + str(len(f))
+				
+		pos = np.arange(len(alphab))
+		width = 0.7    # gives histogram aspect to the bar diagram
 
-#img = Image.open('ani_img.tif')
-#regiongrow(img,epsilon = 20 ,start_point = (440,50), out_img_name = 'roflstomp2.tif')
+		ax = plt.axes()
+		ax.set_xticks(pos + (width / 2))
+		ax.set_xticklabels(alphab)
 
+		plt.bar(pos, f, width, color='g')
+	
+		plt.show()
+	except IOError:
+		print "Problems opening file " + filename	
+
+
+
+			
+#p = processImages(path)
+#print time.clock()
+#m = fileReader.sli_from_folder_to_array(path + "/reco") 
+#start = time.clock()
+#f = frequencies_float(m)
+#print "Time it took for freq: " + str(time.clock() - start)
+#for fr in f:
+#	print fr 
+
+file_freq_float = open("frequencies_float1.txt", "w")
+
+i = 0
+for line in file_freq_float:
+	file_freq_float.write(str(i) + " " + str(line) + "\n")
+	i += 1
+	
+#histogram("frequencies_float1.txt")
+
+plt.plotfile("frequencies_float1.txt")
+plt.show()
