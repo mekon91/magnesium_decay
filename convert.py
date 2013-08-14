@@ -161,6 +161,3 @@ def raw_to_histogram(path, numBins, output):
 		i += 1
 	f.close()
 
-
-raw_to_histogram('/space/hzg09c_rawbin2/reco/', 2048, 'hist-o.dat')
-
