@@ -22,8 +22,8 @@ def raw2Numpy(filename):
 		fp_index = 0
 		fp = unpack('f', file.read(4))		#NB. unpack returns a tuple, hence fp[0]
 		
-		while fp_index < width * height - 1:			
-			array[fp_index // width][fp_index % width] = fp[0]
+		while fp_index < array.shape[0] * array.shape[1] - 1:			
+			array[fp_index // array.shape[0]][fp_index % array.shape[0]] = fp[0]
 			fp = unpack('f', file.read(4))
 			fp_index += 1
 		
