@@ -1,4 +1,25 @@
 import re
+from os import listdir
+from os.path import isfile, join
+
+#returns all the files at path that end with the extension file_extension
+def get_files(path,file_extension):
+	try:
+		files = [ f for f in listdir(path) if isfile(join(path,f)) and f.endswith(file_extension)]
+	except IOError:
+		"No such file or directory: "  + path 	
+	#check if there are files in folder and print their names out
+	if (len(files) >= 1):
+		
+		print "Files at " + path + " with extension " + file_extension + " :" 
+		for i in files:
+			print i,
+		print '\n'
+		sort_nicely(files)	
+		return files
+	else:
+		print "No files in folder " + path
+		return None
 
 def tryint(s):
     try:
