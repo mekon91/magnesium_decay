@@ -55,8 +55,8 @@ def images_to_numpy3D(path, file_extension):
 		return None	
 
 #similarly to images_to_3Dnumpy, this method reads the .sli files into an array. The array entries are float numbers
-def raw_to_3Dnumpy(path):
-	files = _get_files(path,".sli")
+def raw_to_numpy3D(path):
+	files = helpFunctions.get_files(path,".sli")
 	try:
 		i = 0
 		#get dimension of the first file. Assumes all files have same header (thus same width,height)
@@ -67,7 +67,7 @@ def raw_to_3Dnumpy(path):
 			
 		for file in files:
 			print "Opening file at " + path + "/" + file	
-			m[i] = raw_to_2Dnumpy(path + "/" + file)							
+			m[i] = raw_to_numpy2D(path + "/" + file)							
 			i += 1
 		print 
 		return m		

@@ -1,16 +1,15 @@
 
-import os,sys, scipy, warnings, time, helpFcts, fileReader 
+import os,sys, scipy, warnings, time, helpFunctions, convert
 import numpy as np
 from os import listdir
 from os.path import isfile, join
 import scipy.ndimage as im
 from PIL import Image, ImageSequence
 from images2gif import writeGif
-from regionGrowing import *
 import matplotlib.pyplot as plt
 
 file_extension = ".tif"
-path = "/afs/desy.de/user/d/dariep/Desktop/magnesium_decay/Data1"
+path = "/space/Data/Data1"
 
 class processImages:
 	#path of the images
@@ -71,14 +70,15 @@ class processImages:
 			os.makedirs(path_recolored_basic)
 			
 		#m is the 3D array containing all the images at path
-		m = fileReader.image_from_folder_to_array(path_original_images, file_extension)
-		self.m = m
+		m = convert.raw_to_numpy3D(path_original_sli)
+		self.m = m	
 		
-		f = frequencies(m)
+		#f = frequencies(m)
 	
 		print "Number of images: " + str(m.shape[0])		
 			
-		#m = apply_filters(m, path_filtered)
+		m = apply_filters(m, path_filtered)
+		
 		#region grow to find the different regions.Should return list of thresholds.TODO
 		#threshholds = [50,185]
 			
@@ -661,23 +661,11 @@ def histogram(filename):
 
 
 			
-#p = processImages(path)
-#print time.clock()
-#m = fileReader.sli_from_folder_to_array(path + "/reco") 
-#start = time.clock()
-#f = frequencies_float(m)
-#print "Time it took for freq: " + str(time.clock() - start)
-#for fr in f:
-#	print fr 
+p = processImages(path)
 
-file_freq_float = open("frequencies_float1.txt", "w")
 
-i = 0
-for line in file_freq_float:
-	file_freq_float.write(str(i) + " " + str(line) + "\n")
-	i += 1
-	
-#histogram("frequencies_float1.txt")
 
-plt.plotfile("frequencies_float1.txt")
-plt.show()
+
+
+#plt.plotfile("frequencies_float1.txt")
+#plt.show()
