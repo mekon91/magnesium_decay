@@ -29,34 +29,34 @@ def raw_to_numpy2D(filename):
 		return array
 
 #using the helpFunctions.get_files, it then reads all images at path with the extension 'file_extension', and stacks them on a 3D array m. m[i] is the ith image
-#The array m entries are [0 255] 
-def images_to_numpy3D(path, file_extension):
-	image_files = helpFunctions.get_files(path,file_extension)
+#The array m entries are [0 255], r is the range, x,y 
+def images_to_numpy3D(path, range_files ,file_extension):
+	image_files = helpFunctions.get_files(path, range_files, file_extension)
 	try:
-		i = 0
 		#get dimension of the image. It assumes all images are the same resolution
 		first_img = Image.open(path + "/" + image_files[0])
 			
 		m = np.zeros((len(image_files),first_img.size[0],first_img.size[1]), dtype = int)
-			
+		
+		index = 0	
 		for file in image_files:
+		
 			print "Opening image at " + path + "/" + file
+			img = Image.open(path + "/" + file)									
+			m[index] = np.asarray(img)
+			index += 1
 			
-			img = Image.open(path + "/" + file)						
-			#convert the image to a 2D array. flip the x axis, because for some reason the image img is mirrored. 
-			#The flipud ( mirror x ) should generaly not be required!
-			a = np.flipud(np.asarray(img))		
-			m[i] = a
-			i += 1
 		print
 		return m		
 	except IOError:
 		print "Problems opening files from" + path
 		return None	
 
+
 #similarly to images_to_3Dnumpy, this method reads the .sli files into an array. The array entries are float numbers
-def raw_to_numpy3D(path):
-	files = helpFunctions.get_files(path,".sli")
+def raw_to_numpy3D(path, range_files):
+	files = helpFunctions.get_files(path, range_files, ".sli")
+	print files
 	try:
 		i = 0
 		#get dimension of the first file. Assumes all files have same header (thus same width,height)
@@ -75,8 +75,9 @@ def raw_to_numpy3D(path):
 		print "Problems opening files from" + path
 		return None
 
-def numpy3D_to_histogram(m):
-	f = np.zeros(512,dtype = int)
+
+def numpy3D_to_histogram(m, numBins):
+	f = np.zeros(numBins,dtype = int)
 	#get max and min
 	minimum = m[0,0,0]
 	maximum = m[0,0,0]
@@ -101,7 +102,7 @@ def numpy3D_to_histogram(m):
 				index = abs(int(m[i,j,k] / bin_size))
 				f[index] += 1 
 	return f
-
+	
 def _get_parameters(path, files):
 	fpmin = None
 	fpmax = None
@@ -127,8 +128,9 @@ def _get_parameters(path, files):
 		n += 1
 	return ( dims, (fpmin, fpmax) )
 		
-def raw_to_histogram(path, numBins, output):
-	files = helpFunctions.get_files(path,'.sli')
+
+def raw_to_histogram(path, range_files, numBins):
+	files = helpFunctions.get_files(path, range_files, '.sli')
 	
 	print 'loading params'
 	params = _get_parameters(path, files)
@@ -152,12 +154,6 @@ def raw_to_histogram(path, numBins, output):
 				k = int((fp[0]-fpmin) / binSize)
 				freq_list[k] += 1
 		n += 1
-		
-	print freq_list
-	f = open(output, 'w')
-	i = 0
-	for v in freq_list:
-		f.write(str(i) + ',' + str(v) + '\n')
-		i += 1
-	f.close()
-
+	print 'bin size: ' + str(binSize)
+	print 'minimum floating point value:  ' + str(fpmin)	
+	return freq_list
